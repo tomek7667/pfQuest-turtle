@@ -103,7 +103,8 @@ function pfMap:UpdateNode(frame, node, color, obj, distance)
   -- Call original function first
   original_UpdateNode(self, frame, node, color, obj, distance)
   
-  -- Check if this node is a quest icon (has texture and questid)
+  -- Check if this node is a quest icon (has texture path) with a custom quest ID
+  -- Note: frame.texture is the texture path string, frame.tex is the texture object
   if frame.questid and frame.texture and tonumber(frame.questid) >= CUSTOM_QUEST_ID_THRESHOLD then
     -- Apply cyan color to custom TurtleWoW quest icons
     -- RGB values: 0.28, 0.82, 0.8 matches |cff48d1cc
