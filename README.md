@@ -5,6 +5,14 @@ This AddOn is a [pfQuest](https://github.com/shagu/pfQuest) extension, which add
 
 If you wish to contribute, please feel free to send a [Pull Requests](https://github.com/shagu/pfQuest-turtle/pulls).
 
+## Features
+
+### Custom Quest Coloring
+Custom TurtleWoW quests (Quest IDs >= 40000) are displayed in a distinctive **teal/cyan color** to differentiate them from classic World of Warcraft quests. This makes it easy to identify which quests are original content and which are custom additions by the TurtleWoW team.
+
+- **Classic Quests** (ID < 40000): Default quest color
+- **Custom Quests** (ID >= 40000): Teal/cyan color (`|cff48d1cc`)
+
 ## Install
 *The latest version of [pfQuest](https://shagu.org/pfQuest) is required for this module to work.*
 
