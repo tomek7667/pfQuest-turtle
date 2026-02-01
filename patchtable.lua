@@ -47,7 +47,7 @@ if pfDB["meta-turtle"] then patchtable(pfDB["meta"], pfDB["meta-turtle"]) end
 -- Using a teal/cyan color (|cff48d1cc) for custom quests
 local CUSTOM_QUEST_COLOR = "|cff48d1cc"
 local COLOR_END = "|r"
-local CUSTOM_QUEST_ID_THRESHOLD = 40000
+local CUSTOM_QUEST_ID_THRESHOLD = 15000
 
 for loc, _ in pairs(pfDB.locales) do
   local questDB = pfDB["quests"][loc]
