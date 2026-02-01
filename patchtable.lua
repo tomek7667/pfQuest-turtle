@@ -96,6 +96,23 @@ function pfMap:HasMinimap(map_id)
   return has_minimap
 end
 
+-- Override map node rendering to make custom TurtleWoW quest icons cyan
+-- This hooks into pfMap's UpdateNode function to color quest markers
+local original_UpdateNode = pfMap.UpdateNode
+function pfMap:UpdateNode(frame, node, color, obj, distance)
+  -- Call original function first
+  original_UpdateNode(self, frame, node, color, obj, distance)
+  
+  -- Check if this node is a quest icon (has texture and questid)
+  if frame.questid and frame.texture and tonumber(frame.questid) >= CUSTOM_QUEST_ID_THRESHOLD then
+    -- Apply cyan color to custom TurtleWoW quest icons
+    -- RGB values: 0.28, 0.82, 0.8 matches |cff48d1cc
+    if frame.tex and frame.tex.SetVertexColor then
+      frame.tex:SetVertexColor(0.28, 0.82, 0.8, 1)
+    end
+  end
+end
+
 -- Reload all pfQuest internal database shortcuts
 pfDatabase:Reload()
 
