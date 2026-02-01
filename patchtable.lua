@@ -58,8 +58,8 @@ for loc, _ in pairs(pfDB.locales) do
         -- Check if quest has a title and it's not already colored
         if type(questData) == "table" and questData["T"] and type(questData["T"]) == "string" then
           local title = questData["T"]
-          -- Only add color if not already colored
-          if not string.find(title, "|c") then
+          -- Only add color if title doesn't start with a color code (|cXXXXXXXX)
+          if not string.find(title, "^|c") then
             questData["T"] = CUSTOM_QUEST_COLOR .. title .. COLOR_END
           end
         end
