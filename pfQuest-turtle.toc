@@ -1,9 +1,8 @@
 ## Interface: 11200
 ## Title: |cff33ffccpf|cffffffffQuest |cffcccccc[TurtleWoW DB]
-## Author: Shagu
-## Contributors: Gurky, Antealis, HumbleKagu, KasVital, Haaxor1689, IcemanHHW, fatpowaranga
+## Author: tomek7667
 ## Notes: A TurtleWoW DB extension for pfQuest. Custom quests (ID >= 40000) are colored in teal/cyan to distinguish them from classic content.
-## Version: 1.0.0
+## Version: 1.0.1
 ## Dependencies: pfQuest
 ## SavedVariables: pfQuest_turtlecount
 
