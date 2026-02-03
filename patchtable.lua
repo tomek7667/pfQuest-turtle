@@ -109,7 +109,10 @@ function pfMap:UpdateNode(frame, node, color, obj, distance)
     -- Apply cyan color to custom TurtleWoW quest icons
     -- RGB values: 0.28, 0.82, 0.8 matches |cff48d1cc
     if frame.tex and frame.tex.SetVertexColor then
-      frame.tex:SetVertexColor(0.28, 0.82, 0.8, 1)
+      -- Preserve the original alpha value to prevent texture re-rendering
+      -- which can cause icons to move during player movement
+      local _, _, _, originalAlpha = frame.tex:GetVertexColor()
+      frame.tex:SetVertexColor(0.28, 0.82, 0.8, originalAlpha or 1)
     end
   end
 end
