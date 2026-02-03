@@ -206,8 +206,8 @@ end)
 if pfDatabase and type(pfDatabase.GetQuestTitle) == "function" then
   local pfDatabase_GetQuestTitle = pfDatabase.GetQuestTitle
   
-  function pfDatabase:GetQuestTitle(questId, ...)
-    local title = pfDatabase_GetQuestTitle(self, questId, ...)
+  function pfDatabase:GetQuestTitle(questId)
+    local title = pfDatabase_GetQuestTitle(self, questId)
     
     -- Apply cyan color to custom TurtleWoW quests (ID >= 40000)
     if title and type(questId) == "number" and questId >= CUSTOM_QUEST_ID_THRESHOLD then
@@ -220,5 +220,8 @@ if pfDatabase and type(pfDatabase.GetQuestTitle) == "function" then
     return title
   end
   
-  pfQuest:Debug("Custom quest coloring hook installed (lazy evaluation)")
+  -- Log debug message if available
+  if pfQuest and type(pfQuest.Debug) == "function" then
+    pfQuest:Debug("Custom quest coloring hook installed (lazy evaluation)")
+  end
 end
