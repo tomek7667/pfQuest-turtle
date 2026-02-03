@@ -13,6 +13,13 @@ Custom TurtleWoW quests (Quest IDs >= 40000) are displayed in a distinctive **te
 - **Classic Quests** (ID < 40000): Default quest color
 - **Custom Quests** (ID >= 40000): Teal/cyan color (`|cff48d1cc`)
 
+The coloring is applied **on-demand** using lazy evaluation, which significantly improves addon load time and reduces memory usage compared to pre-coloring all quests at startup.
+
+### Performance Optimizations
+- **Lazy Quest Coloring**: Quest titles are colored dynamically when accessed, not at load time
+- **Efficient Database Patching**: Only TurtleWoW-specific changes are stored and merged
+- **Automatic Cache Management**: Quest cache is automatically cleared when new quests are detected
+
 ## Install
 *The latest version of [pfQuest](https://shagu.org/pfQuest) is required for this module to work.*
 

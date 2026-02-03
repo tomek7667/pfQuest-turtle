@@ -43,30 +43,10 @@ if loc_update then patchtable(loc_core, loc_update) end
 if pfDB["minimap-turtle"] then patchtable(pfDB["minimap"], pfDB["minimap-turtle"]) end
 if pfDB["meta-turtle"] then patchtable(pfDB["meta"], pfDB["meta-turtle"]) end
 
--- Color custom TurtleWoW quests (ID >= 40000) to distinguish them from classic quests
--- Using a teal/cyan color (|cff48d1cc) for custom quests
-local CUSTOM_QUEST_COLOR = "|cff48d1cc"
+-- Configuration: Color custom TurtleWoW quests to distinguish them from classic quests
+local CUSTOM_QUEST_COLOR = "|cff48d1cc"  -- Teal/cyan color
 local COLOR_END = "|r"
-local CUSTOM_QUEST_ID_THRESHOLD = 15000
-
-for loc, _ in pairs(pfDB.locales) do
-  local questDB = pfDB["quests"][loc]
-  if questDB then
-    for questId, questData in pairs(questDB) do
-      -- Check if this is a custom quest (ID >= 40000)
-      if type(questId) == "number" and questId >= CUSTOM_QUEST_ID_THRESHOLD then
-        -- Check if quest has a title and it's not already colored
-        if type(questData) == "table" and questData["T"] and type(questData["T"]) == "string" then
-          local title = questData["T"]
-          -- Only add color if title doesn't start with a color code (|cXXXXXXXX)
-          if not string.find(title, "^|c") then
-            questData["T"] = CUSTOM_QUEST_COLOR .. title .. COLOR_END
-          end
-        end
-      end
-    end
-  end
-end
+local CUSTOM_QUEST_ID_THRESHOLD = 40000  -- Custom TurtleWoW quests start at ID 40000
 
 -- Detect german client patch and switch some databases
 if TURTLE_DE_PATCH then
@@ -220,3 +200,25 @@ updatecheck:SetScript("OnEvent", function()
     pfQuest_turtlecount = count
   end
 end)
+
+-- Hook into pfDatabase to apply custom quest coloring on-demand (lazy evaluation)
+-- This is MUCH more performant than coloring all quests at load time
+if pfDatabase and pfDatabase.GetQuestTitle then
+  local pfDatabase_GetQuestTitle = pfDatabase.GetQuestTitle
+  
+  function pfDatabase:GetQuestTitle(questId)
+    local title = pfDatabase_GetQuestTitle(self, questId)
+    
+    -- Apply cyan color to custom TurtleWoW quests (ID >= 40000)
+    if title and type(questId) == "number" and questId >= CUSTOM_QUEST_ID_THRESHOLD then
+      -- Only add color if title doesn't already have a color code
+      if not string.find(title, "^|c") then
+        return CUSTOM_QUEST_COLOR .. title .. COLOR_END
+      end
+    end
+    
+    return title
+  end
+  
+  pfQuest:Debug("Custom quest coloring hook installed (lazy evaluation)")
+end
