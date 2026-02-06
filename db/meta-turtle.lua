@@ -2809,4 +2809,8 @@ pfDB["meta-turtle"] = {
     [92221] = "H",
     [93115] = "AH",
   },
+  ["trainer"] = {
+    [60817] = "H",  -- Trainer Sinopa
+    [60818] = "H",  -- Trainer Tokala
+  },
 }
