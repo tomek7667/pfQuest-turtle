@@ -2810,6 +2810,27 @@ pfDB["meta-turtle"] = {
     [93115] = "AH",
   },
   ["trainer"] = {
+    [2222] = "AH",  -- Undead Mining Trainer
+    [2325] = "AH",  -- Undead First Aid Trainer
+    [4997] = "AH",  -- World Fishing Trainer
+    [4998] = "AH",  -- World Herbalism Trainer
+    [4999] = "AH",  -- World Mining Trainer
+    [5024] = "AH",  -- World First Aid Trainer
+    [5032] = "AH",  -- World Alchemy Trainer
+    [5033] = "AH",  -- World Blacksmith Trainer
+    [5036] = "AH",  -- World Cooking Trainer
+    [5037] = "AH",  -- World Engineering Trainer
+    [5038] = "AH",  -- World Enchanting Trainer
+    [5040] = "AH",  -- World Leatherworking Trainer
+    [5041] = "AH",  -- World Tailoring Trainer
+    [6242] = "AH",  -- World Skinning Trainer
+    [7525] = "AH",  -- World Leatherworking Dragonscale Trainer
+    [7526] = "AH",  -- World Leatherworking Elemental Trainer
+    [7528] = "AH",  -- World Leatherworking Tribal Trainer
+    [8676] = "AH",  -- World Gnome Engineering Trainer
+    [8677] = "AH",  -- World Goblin Engineering Trainer
+    [12020] = "AH", -- Moonglade Alchemy Trainer
+    [12035] = "AH", -- Aerie Peak Mining Trainer
     [60817] = "H",  -- Trainer Sinopa
     [60818] = "H",  -- Trainer Tokala
   },
