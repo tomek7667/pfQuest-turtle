@@ -32,6 +32,11 @@ end
 
 -- Function to handle mouse wheel zoom
 local function OnMouseWheel(self, delta)
+  -- Check if delta is valid
+  if not delta then
+    return
+  end
+  
   -- Adjust zoom level based on scroll direction
   if delta > 0 then
     -- Scroll up = zoom in
@@ -50,7 +55,15 @@ local function OnMouseDown(self, button)
   if button == "LeftButton" and zoomLevel > 1.0 then
     isDragging = true
     dragStartX, dragStartY = GetCursorPosition()
+    if not dragStartX or not dragStartY then
+      isDragging = false
+      return
+    end
     local scale = UIParent:GetEffectiveScale()
+    if not scale or scale == 0 then
+      isDragging = false
+      return
+    end
     dragStartX = dragStartX / scale
     dragStartY = dragStartY / scale
     -- Enable OnUpdate only while dragging
@@ -71,7 +84,13 @@ end
 local function OnUpdate()
   if isDragging and zoomLevel > 1.0 then
     local x, y = GetCursorPosition()
+    if not x or not y then
+      return
+    end
     local scale = UIParent:GetEffectiveScale()
+    if not scale or scale == 0 then
+      return
+    end
     x = x / scale
     y = y / scale
     
