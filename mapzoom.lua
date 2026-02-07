@@ -6,6 +6,7 @@ local zoomLevel = 1.0
 local minZoom = 0.5   -- Maximum zoom out
 local maxZoom = 3.0   -- Maximum zoom in
 local zoomStep = 0.1  -- Zoom increment per scroll
+local initDelaySeconds = 0.5  -- Delay before initializing to ensure WorldMap is loaded
 
 -- Store original position for dragging
 local isDragging = false
@@ -130,9 +131,9 @@ initFrame:SetScript("OnEvent", function()
     -- Delay initialization slightly to ensure WorldMap is loaded
     local delayFrame = CreateFrame("Frame")
     local elapsed = 0
-    delayFrame:SetScript("OnUpdate", function(frame, delta)
-      elapsed = elapsed + delta
-      if elapsed > 0.5 then
+    delayFrame:SetScript("OnUpdate", function(frame, elapsedTime)
+      elapsed = elapsed + elapsedTime
+      if elapsed > initDelaySeconds then
         InitMapZoom()
         delayFrame:SetScript("OnUpdate", nil)
       end
