@@ -13,9 +13,8 @@ local function ApplyZoom(zoom)
     local scale = zoom
     WorldMapDetailFrame:SetScale(scale)
     
-    -- Center the map after zoom
+    -- When zoomed in, allow the map to be repositioned
     if zoom > 1.0 then
-      -- When zoomed in, allow the map to be repositioned
       WorldMapDetailFrame:EnableMouse(true)
       WorldMapDetailFrame:SetMovable(true)
     end
@@ -24,7 +23,7 @@ end
 
 -- Function to handle mouse wheel zoom on WorldMapFrame
 local function OnMouseWheel(delta)
-  if not WorldMapFrame:IsVisible() then
+  if not WorldMapFrame or not WorldMapFrame:IsVisible() then
     return
   end
   
@@ -41,12 +40,16 @@ local function OnMouseWheel(delta)
   ApplyZoom(zoomLevel)
 end
 
--- Hook into WorldMapFrame to enable mouse wheel scrolling
-if WorldMapFrame then
+-- Initialize the map zoom functionality
+local function InitMapZoom()
+  if not WorldMapFrame then
+    return
+  end
+  
   WorldMapFrame:EnableMouseWheel(true)
   WorldMapFrame:SetScript("OnMouseWheel", OnMouseWheel)
   
-  -- Reset zoom when map is opened or changed
+  -- Reset zoom when map is opened
   local originalShow = WorldMapFrame:GetScript("OnShow")
   WorldMapFrame:SetScript("OnShow", function()
     zoomLevel = 1.0
@@ -55,15 +58,16 @@ if WorldMapFrame then
       originalShow()
     end
   end)
-  
-  -- Reset zoom when map zone changes
-  local zoomResetFrame = CreateFrame("Frame")
-  zoomResetFrame:RegisterEvent("WORLD_MAP_UPDATE")
-  zoomResetFrame:SetScript("OnEvent", function()
-    if WorldMapFrame:IsVisible() then
-      zoomLevel = 1.0
-      ApplyZoom(zoomLevel)
-    end
-  end)
 end
+
+-- Wait for the map frame to be available before initializing
+local initFrame = CreateFrame("Frame")
+initFrame:RegisterEvent("ADDON_LOADED")
+initFrame:SetScript("OnEvent", function()
+  if arg1 == "pfQuest-turtle" then
+    InitMapZoom()
+    this:UnregisterEvent("ADDON_LOADED")
+  end
+end)
+
 
