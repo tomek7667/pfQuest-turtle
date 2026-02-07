@@ -21,10 +21,10 @@ local function ApplyZoom(zoom)
     WorldMapDetailFrame:ClearAllPoints()
     if zoom > 1.0 then
       -- When zoomed in, apply offset for dragging
-      WorldMapDetailFrame:SetPoint("CENTER", WorldMapButton, "CENTER", mapOffsetX, mapOffsetY)
+      WorldMapDetailFrame:SetPoint("CENTER", WorldMapFrame, "CENTER", mapOffsetX, mapOffsetY)
     else
       -- Reset to default position when zoomed out
-      WorldMapDetailFrame:SetPoint("TOPLEFT", WorldMapButton, "TOPLEFT", 0, 0)
+      WorldMapDetailFrame:SetPoint("TOPLEFT", WorldMapFrame, "TOPLEFT", 0, 0)
       mapOffsetX, mapOffsetY = 0, 0
     end
   end
