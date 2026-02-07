@@ -17,10 +17,6 @@ local function ApplyZoom(zoom)
   if WorldMapDetailFrame then
     WorldMapDetailFrame:SetScale(zoom)
     
-    -- Adjust position to maintain center
-    local centerX = WorldMapDetailFrame:GetWidth() / 2
-    local centerY = WorldMapDetailFrame:GetHeight() / 2
-    
     WorldMapDetailFrame:ClearAllPoints()
     if zoom > 1.0 then
       -- When zoomed in, apply offset for dragging
@@ -134,11 +130,11 @@ initFrame:SetScript("OnEvent", function()
     -- Delay initialization slightly to ensure WorldMap is loaded
     local delayFrame = CreateFrame("Frame")
     local elapsed = 0
-    delayFrame:SetScript("OnUpdate", function(self, delta)
+    delayFrame:SetScript("OnUpdate", function(frame, delta)
       elapsed = elapsed + delta
       if elapsed > 0.5 then
         InitMapZoom()
-        delayFrame:Hide()
+        delayFrame:SetScript("OnUpdate", nil)
       end
     end)
     initFrame:UnregisterEvent("ADDON_LOADED")
