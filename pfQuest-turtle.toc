@@ -2,7 +2,7 @@
 ## Title: |cff33ffccpf|cffffffffQuest |cffcccccc[TurtleWoW DB]
 ## Author: tomek7667
 ## Notes: A TurtleWoW DB extension for pfQuest. Custom quests (ID >= 40000) are colored in teal/cyan to distinguish them from classic content.
-## Version: 1.0.4
+## Version: 1.0.5
 ## Dependencies: pfQuest
 ## SavedVariables: pfQuest_turtlecount
 
@@ -15,5 +15,7 @@ init\zhCN-turtle.xml
 init\ruRU-turtle.xml
 
 overwrites.lua
+
+mapzoom.lua
 
 patchtable.lua
