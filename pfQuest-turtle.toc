@@ -16,6 +16,4 @@ init\ruRU-turtle.xml
 
 overwrites.lua
 
-mapzoom.lua
-
 patchtable.lua
