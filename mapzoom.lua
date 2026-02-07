@@ -53,6 +53,8 @@ local function OnMouseDown(self, button)
     local scale = UIParent:GetEffectiveScale()
     dragStartX = dragStartX / scale
     dragStartY = dragStartY / scale
+    -- Enable OnUpdate only while dragging
+    WorldMapDetailFrame:SetScript("OnUpdate", OnUpdate)
   end
 end
 
@@ -60,6 +62,8 @@ end
 local function OnMouseUp(self, button)
   if button == "LeftButton" then
     isDragging = false
+    -- Disable OnUpdate when not dragging
+    WorldMapDetailFrame:SetScript("OnUpdate", nil)
   end
 end
 
@@ -97,7 +101,7 @@ local function InitMapZoom()
   WorldMapDetailFrame:EnableMouse(true)
   WorldMapDetailFrame:SetScript("OnMouseDown", OnMouseDown)
   WorldMapDetailFrame:SetScript("OnMouseUp", OnMouseUp)
-  WorldMapDetailFrame:SetScript("OnUpdate", OnUpdate)
+  -- OnUpdate is set dynamically in OnMouseDown
   
   -- Reset zoom when map is opened
   local originalShow = WorldMapFrame:GetScript("OnShow")
@@ -131,11 +135,12 @@ initFrame:SetScript("OnEvent", function()
     -- Delay initialization slightly to ensure WorldMap is loaded
     local delayFrame = CreateFrame("Frame")
     local elapsed = 0
-    delayFrame:SetScript("OnUpdate", function(frame, elapsedTime)
-      elapsed = elapsed + elapsedTime
+    delayFrame:SetScript("OnUpdate", function(frame, dt)
+      elapsed = elapsed + dt
       if elapsed > initDelaySeconds then
         InitMapZoom()
         delayFrame:SetScript("OnUpdate", nil)
+        delayFrame:Hide()
       end
     end)
     initFrame:UnregisterEvent("ADDON_LOADED")
