@@ -135,12 +135,13 @@ initFrame:SetScript("OnEvent", function()
     -- Delay initialization slightly to ensure WorldMap is loaded
     local delayFrame = CreateFrame("Frame")
     local elapsed = 0
-    delayFrame:SetScript("OnUpdate", function(frame, dt)
+    delayFrame:SetScript("OnUpdate", function(_, dt)
       elapsed = elapsed + dt
       if elapsed > initDelaySeconds then
         InitMapZoom()
         delayFrame:SetScript("OnUpdate", nil)
         delayFrame:Hide()
+        delayFrame = nil
       end
     end)
     initFrame:UnregisterEvent("ADDON_LOADED")
