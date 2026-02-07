@@ -60,7 +60,11 @@ local function OnMouseDown(self, button)
       return
     end
     local scale = UIParent:GetEffectiveScale()
-    if not scale or scale == 0 then
+    if not scale then
+      isDragging = false
+      return
+    end
+    if scale == 0 then
       isDragging = false
       return
     end
@@ -88,7 +92,10 @@ local function OnUpdate()
       return
     end
     local scale = UIParent:GetEffectiveScale()
-    if not scale or scale == 0 then
+    if not scale then
+      return
+    end
+    if scale == 0 then
       return
     end
     x = x / scale
