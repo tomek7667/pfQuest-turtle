@@ -17,6 +17,10 @@ local function ApplyZoom(zoom)
     if zoom > 1.0 then
       WorldMapDetailFrame:EnableMouse(true)
       WorldMapDetailFrame:SetMovable(true)
+    else
+      -- Reset to default when zoomed out
+      WorldMapDetailFrame:EnableMouse(false)
+      WorldMapDetailFrame:SetMovable(false)
     end
   end
 end
@@ -69,5 +73,3 @@ initFrame:SetScript("OnEvent", function()
     this:UnregisterEvent("ADDON_LOADED")
   end
 end)
-
-
