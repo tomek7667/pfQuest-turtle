@@ -93,11 +93,11 @@ local function InitMapZoom()
   end
   
   -- Enable mouse wheel on the detail frame
-  WorldMapDetailFrame:EnableMouseWheel(1)
+  WorldMapDetailFrame:EnableMouseWheel(true)
   WorldMapDetailFrame:SetScript("OnMouseWheel", OnMouseWheel)
   
   -- Enable mouse events for dragging
-  WorldMapDetailFrame:EnableMouse(1)
+  WorldMapDetailFrame:EnableMouse(true)
   WorldMapDetailFrame:SetScript("OnMouseDown", OnMouseDown)
   WorldMapDetailFrame:SetScript("OnMouseUp", OnMouseUp)
   WorldMapDetailFrame:SetScript("OnUpdate", OnUpdate)
@@ -134,11 +134,11 @@ initFrame:SetScript("OnEvent", function()
     -- Delay initialization slightly to ensure WorldMap is loaded
     local delayFrame = CreateFrame("Frame")
     local elapsed = 0
-    delayFrame:SetScript("OnUpdate", function()
-      elapsed = elapsed + arg1
+    delayFrame:SetScript("OnUpdate", function(self, delta)
+      elapsed = elapsed + delta
       if elapsed > 0.5 then
         InitMapZoom()
-        this:Hide()
+        delayFrame:Hide()
       end
     end)
     initFrame:UnregisterEvent("ADDON_LOADED")
