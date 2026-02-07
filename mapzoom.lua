@@ -134,10 +134,9 @@ initFrame:SetScript("OnEvent", function()
   if arg1 == "pfQuest-turtle" then
     -- Delay initialization slightly to ensure WorldMap is loaded
     local delayFrame = CreateFrame("Frame")
-    local elapsed = 0
-    delayFrame:SetScript("OnUpdate", function(_, dt)
-      elapsed = elapsed + dt
-      if elapsed > initDelaySeconds then
+    local startTime = GetTime()
+    delayFrame:SetScript("OnUpdate", function()
+      if GetTime() - startTime > initDelaySeconds then
         InitMapZoom()
         delayFrame:SetScript("OnUpdate", nil)
         delayFrame:Hide()
