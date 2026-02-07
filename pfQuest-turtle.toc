@@ -2,7 +2,7 @@
 ## Title: |cff33ffccpf|cffffffffQuest |cffcccccc[TurtleWoW DB]
 ## Author: tomek7667
 ## Notes: A TurtleWoW DB extension for pfQuest. Custom quests (ID >= 40000) are colored in teal/cyan to distinguish them from classic content.
-## Version: 1.0.2
+## Version: 1.0.3
 ## Dependencies: pfQuest
 ## SavedVariables: pfQuest_turtlecount
 
