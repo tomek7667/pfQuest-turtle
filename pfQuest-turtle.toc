@@ -2,7 +2,7 @@
 ## Title: |cff33ffccpf|cffffffffQuest |cffcccccc[TurtleWoW DB]
 ## Author: tomek7667
 ## Notes: A TurtleWoW DB extension for pfQuest. Custom quest icons are tinted teal/cyan to distinguish them from classic content. Also contains zoom on big map.
-## Version: 1.2.0
+## Version: 1.2.1
 ## Dependencies: pfQuest
 ## SavedVariables: pfQuest_turtlecount
 

@@ -86,6 +86,51 @@ end
 -- Override map node rendering to make custom TurtleWoW quest icons cyan
 -- This hooks into pfMap's UpdateNode function to color quest markers
 local original_UpdateNode = pfMap.UpdateNode
+
+local function pfQuestApplyWorldMapPinSize(pin)
+  if not pin then return end
+
+  local base_size = tonumber(pin.pfquest_base_defsize) or tonumber(pin.defsize) or 14
+  if base_size <= 0 then base_size = 14 end
+  pin.pfquest_base_defsize = base_size
+
+  local eff_scale = tonumber(pin:GetEffectiveScale()) or 1
+  if eff_scale <= 0 then eff_scale = 1 end
+
+  local zoom = tonumber(pfMap and pfMap.worldmap_zoom_state and pfMap.worldmap_zoom_state.scale) or 1
+  if zoom <= 0 then zoom = 1 end
+
+  -- Record baseline on-screen size only at scale 1 and keep it fixed afterwards.
+  if zoom == 1 or not pin.pfquest_base_screen_size then
+    pin.pfquest_base_screen_size = base_size * eff_scale
+  end
+
+  local target_screen_size = tonumber(pin.pfquest_base_screen_size) or (base_size * eff_scale)
+  local size = target_screen_size / eff_scale
+
+  pin.defsize = size
+  pin:SetWidth(size)
+  pin:SetHeight(size)
+
+  if pin.hl then
+    local ratio = size / base_size
+    local hl = 12 * ratio
+    local off = 5 * ratio
+    pin.hl:SetWidth(hl)
+    pin.hl:SetHeight(hl)
+    pin.hl:ClearAllPoints()
+    pin.hl:SetPoint("TOPLEFT", pin, "TOPLEFT", -off, off)
+  end
+end
+
+local function pfQuestApplyAllWorldMapPinSizes()
+  if not pfMap or not pfMap.pins then return end
+
+  for _, pin in pairs(pfMap.pins) do
+    pfQuestApplyWorldMapPinSize(pin)
+  end
+end
+
 function pfMap:UpdateNode(frame, node, color, obj, distance)
   -- Call original function first
   original_UpdateNode(self, frame, node, color, obj, distance)
@@ -99,11 +144,16 @@ function pfMap:UpdateNode(frame, node, color, obj, distance)
       frame.tex:SetVertexColor(0.28, 0.82, 0.8, 1)
     end
   end
+
+  if obj ~= "minimap" and frame then
+    frame.pfquest_base_defsize = (frame.cluster or frame.layer == 4) and 18 or 14
+    pfQuestApplyWorldMapPinSize(frame)
+  end
 end
 
 -- Enable mouse wheel zoom on the expanded world map
 local function pfQuestInstallWorldMapZoom()
-  local ZOOM_VERSION = 2
+  local ZOOM_VERSION = 4
   if pfMap.worldmap_zoom_version ~= ZOOM_VERSION then
     pfMap.worldmap_zoom_installed = nil
     pfMap.worldmap_zoom_state = nil
@@ -276,6 +326,7 @@ local function pfQuestInstallWorldMapZoom()
     end
 
     content:SetScale(state.scale)
+    pfQuestApplyAllWorldMapPinSizes()
 
     local viewW = scroll:GetWidth()
     local viewH = scroll:GetHeight()
