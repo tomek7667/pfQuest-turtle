@@ -1,10 +1,8 @@
--- Initialize all static variables
-local loc = GetLocale()
+local locale = GetLocale()
 local dbs = { "items", "quests", "quests-itemreq", "objects", "units", "zones", "professions", "areatrigger", "refloot" }
-local noloc = { "items", "quests", "objects", "units" }
 
--- Patch databases to merge TurtleWoW data
 local function patchtable(base, diff)
+  if not base or not diff then return end
   for k, v in pairs(diff) do
     if type(v) == "string" and v == "_" then
       base[k] = nil
@@ -14,77 +12,61 @@ local function patchtable(base, diff)
   end
 end
 
--- Detect a typo from old clients and re-apply the typo to the zones table
--- This is a workaround which is required until all clients are updated
-for id, name in pairs({GetMapZones(2)}) do
+-- Keep this legacy typo for older clients.
+for _, name in pairs({ GetMapZones(2) }) do
   if name == "Northwind " then
     pfDB["zones"]["enUS-turtle"][5581] = "Northwind "
+    break
   end
 end
 
-local loc_core, loc_update
-for _, db in pairs(dbs) do
-  if pfDB[db]["data-turtle"] then
-    patchtable(pfDB[db]["data"], pfDB[db]["data-turtle"])
+for _, db in ipairs(dbs) do
+  local database = pfDB[db]
+  if database["data-turtle"] then
+    patchtable(database["data"], database["data-turtle"])
   end
 
-  for loc, _ in pairs(pfDB.locales) do
-    if pfDB[db][loc] and pfDB[db][loc.."-turtle"] then
-      loc_update = pfDB[db][loc.."-turtle"] or pfDB[db]["enUS-turtle"]
-      patchtable(pfDB[db][loc], loc_update)
+  for locale_name in pairs(pfDB.locales) do
+    if database[locale_name] and database[locale_name .. "-turtle"] then
+      patchtable(database[locale_name], database[locale_name .. "-turtle"])
     end
   end
 end
 
-loc_core = pfDB["professions"][loc] or pfDB["professions"]["enUS"]
-loc_update = pfDB["professions"][loc.."-turtle"] or pfDB["professions"]["enUS-turtle"]
-if loc_update then patchtable(loc_core, loc_update) end
+local loc_core = pfDB["professions"][locale] or pfDB["professions"]["enUS"]
+local loc_update = pfDB["professions"][locale .. "-turtle"] or pfDB["professions"]["enUS-turtle"]
+if loc_core and loc_update then patchtable(loc_core, loc_update) end
 
 if pfDB["minimap-turtle"] then patchtable(pfDB["minimap"], pfDB["minimap-turtle"]) end
 if pfDB["meta-turtle"] then patchtable(pfDB["meta"], pfDB["meta-turtle"]) end
 
--- Threshold for custom TurtleWoW quests (used for map icon coloring)
 local CUSTOM_QUEST_ID_THRESHOLD = 15000
 
--- NOTE:
--- Coloring quest titles inside the database breaks quest-log ID matching,
--- which prevents some active quests from showing their map dots after reload.
--- Custom quests are still visually distinguished via icon color.
 if pfQuest_questcache then
-  -- Clear stale quest cache from previous sessions with colored titles.
+  -- Keep quest titles raw; custom quests are highlighted by icon tint.
   pfQuest_questcache = nil
 end
 
--- Detect german client patch and switch some databases
 if TURTLE_DE_PATCH then
   pfDB["zones"]["loc"] = pfDB["zones"]["deDE"] or pfDB["zones"]["enUS"]
   pfDB["professions"]["loc"] = pfDB["professions"]["deDE"] or pfDB["professions"]["enUS"]
 end
 
--- Update bitmasks to include custom races
 if pfDB.bitraces then
   pfDB.bitraces[256] = "Goblin"
   pfDB.bitraces[512] = "BloodElf"
 end
 
--- Use turtle-wow database url
 pfQuest.dburl = "https://database.turtle-wow.org/?quest="
 
--- Disable Minimap in custom dungeon maps
 function pfMap:HasMinimap(map_id)
-  -- disable dungeon minimap
-  local has_minimap = not IsInInstance()
-
-  -- enable dungeon minimap if continent is less then 3 (e.g AV)
-  if IsInInstance() and GetCurrentMapContinent() < 3 then
-    has_minimap = true
+  if not IsInInstance() then
+    return true
   end
 
-  return has_minimap
+  return GetCurrentMapContinent() < 3
 end
 
--- Override map node rendering to make custom TurtleWoW quest icons cyan
--- This hooks into pfMap's UpdateNode function to color quest markers
 local original_UpdateNode = pfMap.UpdateNode
 
 local function pfQuestApplyWorldMapPinSize(pin)
@@ -100,7 +82,6 @@ local function pfQuestApplyWorldMapPinSize(pin)
   local zoom = tonumber(pfMap and pfMap.worldmap_zoom_state and pfMap.worldmap_zoom_state.scale) or 1
   if zoom <= 0 then zoom = 1 end
 
-  -- Record baseline on-screen size only at scale 1 and keep it fixed afterwards.
   if zoom == 1 or not pin.pfquest_base_screen_size then
     pin.pfquest_base_screen_size = base_size * eff_scale
   end
@@ -132,14 +113,9 @@ local function pfQuestApplyAllWorldMapPinSizes()
 end
 
 function pfMap:UpdateNode(frame, node, color, obj, distance)
-  -- Call original function first
   original_UpdateNode(self, frame, node, color, obj, distance)
-  
-  -- Check if this node is a quest icon (has texture path) with a custom quest ID
-  -- Note: frame.texture is the texture path string, frame.tex is the texture object
-  if frame.questid and frame.texture and tonumber(frame.questid) >= CUSTOM_QUEST_ID_THRESHOLD then
-    -- Apply cyan color to custom TurtleWoW quest icons
-    -- RGB values: 0.28, 0.82, 0.8 matches |cff48d1cc
+
+  if frame and frame.questid and frame.texture and tonumber(frame.questid) >= CUSTOM_QUEST_ID_THRESHOLD then
     if frame.tex and frame.tex.SetVertexColor then
       frame.tex:SetVertexColor(0.28, 0.82, 0.8, 1)
     end
@@ -151,7 +127,6 @@ function pfMap:UpdateNode(frame, node, color, obj, distance)
   end
 end
 
--- Enable mouse wheel zoom on the expanded world map
 local function pfQuestInstallWorldMapZoom()
   local ZOOM_VERSION = 4
   if pfMap.worldmap_zoom_version ~= ZOOM_VERSION then
@@ -508,54 +483,50 @@ if not pfQuestInstallWorldMapZoom() then
     end
   end)
 end
--- Reload all pfQuest internal database shortcuts
 pfDatabase:Reload()
 
 local function strsplit(delimiter, subject)
   if not subject then return nil end
-  local delimiter, fields = delimiter or ":", {}
-  local pattern = string.format("([^%s]+)", delimiter)
-  string.gsub(subject, pattern, function(c) fields[table.getn(fields)+1] = c end)
+  local fields = {}
+  local pattern = string.format("([^%s]+)", delimiter or ":")
+  string.gsub(subject, pattern, function(token) fields[table.getn(fields)+1] = token end)
   return unpack(fields)
 end
 
--- Complete quest id including all pre quests
+-- Server reports direct completions only; close/pre chains are resolved here.
 local function complete(history, qid)
-  -- ignore empty or broken questid
-  if not qid or not tonumber(qid) then return end
+  qid = tonumber(qid)
+  if not qid then return end
 
-  -- mark quest as complete
-  local time = pfQuest_history[qid] and pfQuest_history[qid][1] or 0
-  local level = pfQuest_history[qid] and pfQuest_history[qid][2] or 0
-  history[qid] = { time, level }
+  local previous = pfQuest_history and pfQuest_history[qid]
+  history[qid] = { previous and previous[1] or 0, previous and previous[2] or 0 }
 
-  -- complete all quests that are closed by the selcted one
-  local close = pfDB["quests"]["data"][qid] and pfDB["quests"]["data"][qid]["close"]
+  local quest_data = pfDB["quests"] and pfDB["quests"]["data"]
+  local quest = quest_data and quest_data[qid]
+  if not quest then return end
+
+  local close = quest["close"]
   if close then
-    for _, qid in pairs(close) do
-      if not history[qid] then complete(history, qid) end
+    for _, close_qid in pairs(close) do
+      if not history[close_qid] then complete(history, close_qid) end
     end
   end
 
-  -- make sure all prequests are marked as done aswell
-  local prequests = pfDB["quests"]["data"][qid] and pfDB["quests"]["data"][qid]["pre"]
+  local prequests = quest["pre"]
   if prequests then
-    for _, qid in pairs(prequests) do
-      if not history[qid] then complete(history, qid) end
+    for _, pre_qid in pairs(prequests) do
+      if not history[pre_qid] then complete(history, pre_qid) end
     end
   end
 end
 
--- Temporary workaround for a faction group translation error
-
--- Add function to query for quest completion
 local query = CreateFrame("Frame")
 query:Hide()
 
 query:SetScript("OnEvent", function()
   if arg1 == "TWQUEST" then
     for _, qid in pairs({strsplit(" ", arg2)}) do
-      complete(this.history, tonumber(qid))
+      complete(this.history, qid)
     end
   end
 end)
@@ -590,27 +561,23 @@ function pfDatabase:QueryServer()
   query:Show()
 end
 
--- Automatically clear quest cache if new turtle quests have been found
-local updatecheck = CreateFrame("Frame")
-updatecheck:RegisterEvent("PLAYER_ENTERING_WORLD")
-updatecheck:SetScript("OnEvent", function()
-  if pfDB["quests"]["data-turtle"] then
-    -- count all known turtle-wow quests
+local update_check = CreateFrame("Frame")
+update_check:RegisterEvent("PLAYER_ENTERING_WORLD")
+update_check:SetScript("OnEvent", function()
+  local turtle_quests = pfDB["quests"]["data-turtle"]
+  if turtle_quests then
     local count = 0
-    for k, v in pairs(pfDB["quests"]["data-turtle"]) do
+    for _ in pairs(turtle_quests) do
       count = count + 1
     end
 
     pfQuest:Debug("TurtleWoW loaded with |cff33ffcc" .. count .. "|r quests.")
 
-    -- check if the last count differs to the current amount of quests
     if not pfQuest_turtlecount or pfQuest_turtlecount ~= count then
-      -- remove quest cache to force reinitialisation of all quests.
       pfQuest:Debug("New quests found. Reloading |cff33ffccCache|r")
       pfQuest_questcache = {}
     end
 
-    -- write current count to the saved variable
     pfQuest_turtlecount = count
   end
 end)
