@@ -71,6 +71,8 @@ local original_UpdateNode = pfMap.UpdateNode
 local original_UpdateNodes = pfMap.UpdateNodes
 local original_GetMapID = pfMap.GetMapID
 local CONTINENT_NODE_ADDON = "PFQUEST_TURTLE_CONTINENT"
+local CONTINENT_COORD_PATTERN = "([^|]+)|([^|]+)"
+local CONTINENT_COORD_FORMAT = "%.2f|%.2f"
 local continent_map_cache = {}
 
 local function pfQuestApplyWorldMapPinSize(pin)
@@ -167,7 +169,9 @@ local function pfQuestTranslateToMap(map_id, x, y, target_id)
 
     local parent, width, height, parent_x, parent_y = unpack(meta)
     if not parent or parent <= 0 then return nil end
+    if not width or not height or not parent_x or not parent_y then return nil end
 
+    -- Child map coords are centered at 50,50 in parent-space percentages.
     x = parent_x + ((x - 50) * width / 100)
     y = parent_y + ((y - 50) * height / 100)
     map_id = parent
@@ -185,22 +189,23 @@ local function pfQuestBuildContinentQuestNodes(continent_map)
         map_id = tonumber(map_id)
         if map_id and map_id > 0 and map_id ~= continent_map then
           for coords, node in pairs(map_nodes) do
-            local _, _, sx, sy = string.find(coords, "(.*)|(.*)")
-            local x, y = tonumber(sx), tonumber(sy)
+            local coord_x_str, coord_y_str = string.match(coords, CONTINENT_COORD_PATTERN)
+            local x, y = tonumber(coord_x_str), tonumber(coord_y_str)
 
             if x and y then
               local tx, ty = pfQuestTranslateToMap(map_id, x, y, continent_map)
               if tx and ty then
                 local filtered = nil
                 for title, meta in pairs(node) do
-                  if meta and meta.texture and (string.find(meta.texture, "available", 1, true) or string.find(meta.texture, "complete", 1, true)) then
+                  local texture = meta and meta.texture
+                  if texture and (string.find(texture, "available", 1, true) or string.find(texture, "complete", 1, true)) then
                     filtered = filtered or {}
                     filtered[title] = meta
                   end
                 end
 
                 if filtered then
-                  local key = string.format("%.2f|%.2f", tx, ty)
+                  local key = string.format(CONTINENT_COORD_FORMAT, tx, ty)
                   continent_nodes[key] = continent_nodes[key] or {}
                   for title, meta in pairs(filtered) do continent_nodes[key][title] = meta end
                 end
