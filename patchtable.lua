@@ -68,6 +68,14 @@ function pfMap:HasMinimap(map_id)
 end
 
 local original_UpdateNode = pfMap.UpdateNode
+local original_UpdateNodes = pfMap.UpdateNodes
+local original_GetMapID = pfMap.GetMapID
+local CONTINENT_NODE_ADDON = "PFQUEST_TURTLE_CONTINENT"
+local CONTINENT_COORD_PATTERN = "([^|]+)|([^|]+)"
+local CONTINENT_COORD_FORMAT = "%.2f|%.2f"
+local CONTINENT_MAP_KEY_BASE = 90000
+local continent_zone_cache = {}
+local continent_zone_debug = {}
 
 local function pfQuestApplyWorldMapPinSize(pin)
   if not pin then return end
@@ -125,6 +133,254 @@ function pfMap:UpdateNode(frame, node, color, obj, distance)
     frame.pfquest_base_defsize = (frame.cluster or frame.layer == 4) and 18 or 14
     pfQuestApplyWorldMapPinSize(frame)
   end
+end
+
+local function pfQuestGetContinentMapKey(continent)
+  continent = tonumber(continent)
+  if not continent or continent <= 0 then return nil end
+  return CONTINENT_MAP_KEY_BASE + continent
+end
+
+local function pfQuestGetContinentZoneLookup(continent)
+  local zone_names = { GetMapZones(continent) }
+  local zone_name_to_id = {}
+  local zone_id_to_index = {}
+
+  for zone_index, zone_name in ipairs(zone_names) do
+    if zone_name and zone_name ~= "" then
+      local map_id = original_GetMapID and original_GetMapID(pfMap, continent, zone_index)
+      if not map_id then
+        map_id = pfMap:GetMapIDByName(zone_name)
+      end
+      if map_id and map_id > 0 then
+        zone_name_to_id[zone_name] = map_id
+        zone_id_to_index[map_id] = zone_index
+      end
+    end
+  end
+
+  return zone_names, zone_name_to_id, zone_id_to_index
+end
+
+local function pfQuestResolveHighlightZone(zone_names, zone_name_to_id, r1, r2)
+  if type(r1) == "number" and zone_names[r1] and zone_name_to_id[zone_names[r1]] then
+    return zone_names[r1]
+  end
+
+  if type(r1) == "string" and zone_name_to_id[r1] then
+    return r1
+  end
+
+  if type(r2) == "string" and zone_name_to_id[r2] then
+    return r2
+  end
+end
+
+local function pfQuestSampleContinentRects(continent, mode)
+  if not UpdateMapHighlight or not WorldMapButton then return nil end
+
+  local width = tonumber(WorldMapButton:GetWidth()) or 0
+  local height = tonumber(WorldMapButton:GetHeight()) or 0
+  if width <= 0 or height <= 0 then return nil end
+
+  local zone_names, zone_name_to_id = pfQuestGetContinentZoneLookup(continent)
+  if not zone_names or not next(zone_name_to_id) then return nil end
+
+  local step = math.floor(math.min(width, height) / 90)
+  if step < 4 then step = 4 end
+
+  local rects = {}
+  for px = 0, width, step do
+    for py = 0, height, step do
+      local sample_x, sample_y
+      if mode == "relative" then
+        sample_x = px - (width / 2)
+        sample_y = (height / 2) - py
+      elseif mode == "normalized" then
+        sample_x = px / width
+        sample_y = py / height
+      else
+        sample_x, sample_y = px, py
+      end
+
+      local r1, r2 = UpdateMapHighlight(sample_x, sample_y)
+      local zone_name = pfQuestResolveHighlightZone(zone_names, zone_name_to_id, r1, r2)
+      local map_id = zone_name and zone_name_to_id[zone_name]
+      if map_id then
+        rects[map_id] = rects[map_id] or { minx = px, maxx = px, miny = py, maxy = py }
+        local rect = rects[map_id]
+        if px < rect.minx then rect.minx = px end
+        if px > rect.maxx then rect.maxx = px end
+        if py < rect.miny then rect.miny = py end
+        if py > rect.maxy then rect.maxy = py end
+      end
+    end
+  end
+
+  local found = 0
+  local pad_x = step / 2
+  local pad_y = step / 2
+  local zone_rects = {}
+
+  for map_id, rect in pairs(rects) do
+    local left = (math.max(0, rect.minx - pad_x) / width) * 100
+    local right = (math.min(width, rect.maxx + pad_x) / width) * 100
+    local top = (math.max(0, rect.miny - pad_y) / height) * 100
+    local bottom = (math.min(height, rect.maxy + pad_y) / height) * 100
+
+    zone_rects[map_id] = { left = left, right = right, top = top, bottom = bottom }
+    found = found + 1
+  end
+
+  if found == 0 then return nil end
+  return zone_rects, width, height
+end
+
+local function pfQuestGetContinentZoneRects(continent)
+  continent = tonumber(continent)
+  if not continent or continent <= 0 then return nil end
+
+  local width = WorldMapButton and tonumber(WorldMapButton:GetWidth()) or 0
+  local height = WorldMapButton and tonumber(WorldMapButton:GetHeight()) or 0
+  local cached = continent_zone_cache[continent]
+  if cached and cached.rects and cached.width == width and cached.height == height then
+    return cached.rects
+  end
+
+  local rects, rw, rh = pfQuestSampleContinentRects(continent, "relative")
+  if not rects then
+    rects, rw, rh = pfQuestSampleContinentRects(continent, "normalized")
+  end
+  if not rects then
+    rects, rw, rh = pfQuestSampleContinentRects(continent, "absolute")
+  end
+
+  if not rects then
+    if not continent_zone_debug[continent] then
+      continent_zone_debug[continent] = true
+      if pfQuest and pfQuest.Debug then
+        pfQuest:Debug("continent markers: unable to resolve zone bounds for continent " .. tostring(continent))
+      end
+    end
+    continent_zone_cache[continent] = nil
+    return nil
+  end
+
+  continent_zone_debug[continent] = nil
+  continent_zone_cache[continent] = { rects = rects, width = rw or width, height = rh or height }
+  return rects
+end
+
+local function pfQuestTranslateToContinent(continent, map_id, x, y, zone_rects, zone_id_to_index)
+  if not map_id then return nil end
+
+  local zones = pfDB and pfDB["zones"] and pfDB["zones"]["data"]
+  local guard = 0
+
+  while map_id and map_id > 0 and guard < 8 do
+    if Astrolabe and Astrolabe.TranslateWorldMapPosition and zone_id_to_index then
+      local zone_index = zone_id_to_index[map_id]
+      if zone_index and zone_index > 0 then
+        local tx, ty = Astrolabe:TranslateWorldMapPosition(continent, zone_index, x / 100, y / 100, continent, 0)
+        if tx and ty then
+          return tx * 100, ty * 100
+        end
+      end
+    end
+
+    if zone_rects then
+      local rect = zone_rects[map_id]
+      if rect then
+        local width = rect.right - rect.left
+        local height = rect.bottom - rect.top
+        return rect.left + (x * width / 100), rect.top + (y * height / 100)
+      end
+    end
+
+    local meta = zones and zones[map_id]
+    if not meta then return nil end
+
+    local parent, width, height, parent_x, parent_y = unpack(meta)
+    if not parent or parent <= 0 then return nil end
+    if not width or not height or not parent_x or not parent_y then return nil end
+
+    -- Child map coords are centered at 50,50 in parent-space percentages.
+    x = parent_x + ((x - 50) * width / 100)
+    y = parent_y + ((y - 50) * height / 100)
+    map_id = parent
+    guard = guard + 1
+  end
+end
+
+local function pfQuestBuildContinentQuestNodes(continent)
+  local continent_nodes = {}
+
+  local zone_rects = pfQuestGetContinentZoneRects(continent)
+  local _, _, zone_id_to_index = pfQuestGetContinentZoneLookup(continent)
+  local can_use_astrolabe = Astrolabe and Astrolabe.TranslateWorldMapPosition and zone_id_to_index and next(zone_id_to_index)
+  if not zone_rects and not can_use_astrolabe then return continent_nodes end
+
+  for addon, maps in pairs(pfMap.nodes or {}) do
+    if addon ~= CONTINENT_NODE_ADDON then
+      for map_id, map_nodes in pairs(maps or {}) do
+        map_id = tonumber(map_id)
+        if map_id and map_id > 0 then
+          for coords, node in pairs(map_nodes) do
+            local coord_x_str, coord_y_str = string.match(coords, CONTINENT_COORD_PATTERN)
+            local x, y = tonumber(coord_x_str), tonumber(coord_y_str)
+
+            if x and y then
+              local tx, ty = pfQuestTranslateToContinent(continent, map_id, x, y, zone_rects, zone_id_to_index)
+              if tx and ty and tx >= 0 and tx <= 100 and ty >= 0 and ty <= 100 then
+                local filtered = nil
+                for title, meta in pairs(node) do
+                  local texture = meta and meta.texture
+                  if texture and (string.find(texture, "available", 1, true) or string.find(texture, "complete", 1, true)) then
+                    filtered = filtered or {}
+                    filtered[title] = meta
+                  end
+                end
+
+                if filtered then
+                  local key = string.format(CONTINENT_COORD_FORMAT, tx, ty)
+                  continent_nodes[key] = continent_nodes[key] or {}
+                  for title, meta in pairs(filtered) do continent_nodes[key][title] = meta end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  return continent_nodes
+end
+
+function pfMap:GetMapID(cid, mid)
+  local continent = cid or GetCurrentMapContinent()
+  local zone = mid
+  if zone == nil then zone = GetCurrentMapZone() end
+
+  if zone == 0 then
+    local continent_map_key = pfQuestGetContinentMapKey(continent)
+    if continent_map_key then return continent_map_key end
+  end
+
+  return original_GetMapID(self, cid, mid)
+end
+
+function pfMap:UpdateNodes()
+  if GetCurrentMapZone() == 0 then
+    local continent = GetCurrentMapContinent()
+    local continent_map_key = pfQuestGetContinentMapKey(continent)
+    if continent_map_key then
+      pfMap.nodes[CONTINENT_NODE_ADDON] = pfMap.nodes[CONTINENT_NODE_ADDON] or {}
+      pfMap.nodes[CONTINENT_NODE_ADDON][continent_map_key] = pfQuestBuildContinentQuestNodes(continent)
+    end
+  end
+
+  return original_UpdateNodes(self)
 end
 
 local function pfQuestInstallWorldMapZoom()
