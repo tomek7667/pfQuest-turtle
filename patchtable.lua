@@ -68,6 +68,10 @@ function pfMap:HasMinimap(map_id)
 end
 
 local original_UpdateNode = pfMap.UpdateNode
+local original_UpdateNodes = pfMap.UpdateNodes
+local original_GetMapID = pfMap.GetMapID
+local CONTINENT_NODE_ADDON = "PFQUEST_TURTLE_CONTINENT"
+local continent_map_cache = {}
 
 local function pfQuestApplyWorldMapPinSize(pin)
   if not pin then return end
@@ -125,6 +129,115 @@ function pfMap:UpdateNode(frame, node, color, obj, distance)
     frame.pfquest_base_defsize = (frame.cluster or frame.layer == 4) and 18 or 14
     pfQuestApplyWorldMapPinSize(frame)
   end
+end
+
+local function pfQuestGetContinentMapID(continent)
+  if continent_map_cache[continent] then return continent_map_cache[continent] end
+  if not continent or continent <= 0 then return nil end
+
+  local zones = pfDB and pfDB["zones"] and pfDB["zones"]["data"]
+  if not zones then return nil end
+
+  local roots, best_id, best_count = {}, nil, 0
+  for _, zone_name in pairs({ GetMapZones(continent) }) do
+    local map_id = pfMap:GetMapIDByName(zone_name)
+    while map_id and zones[map_id] and zones[map_id][1] and zones[map_id][1] > 0 do
+      map_id = zones[map_id][1]
+    end
+
+    if map_id and map_id > 0 then
+      roots[map_id] = (roots[map_id] or 0) + 1
+      if roots[map_id] > best_count then
+        best_id, best_count = map_id, roots[map_id]
+      end
+    end
+  end
+
+  continent_map_cache[continent] = best_id
+  return best_id
+end
+
+local function pfQuestTranslateToMap(map_id, x, y, target_id)
+  local zones = pfDB and pfDB["zones"] and pfDB["zones"]["data"]
+  if not zones or not map_id or not target_id then return nil end
+
+  while map_id and map_id > 0 and map_id ~= target_id do
+    local meta = zones[map_id]
+    if not meta then return nil end
+
+    local parent, width, height, parent_x, parent_y = unpack(meta)
+    if not parent or parent <= 0 then return nil end
+
+    x = parent_x + ((x - 50) * width / 100)
+    y = parent_y + ((y - 50) * height / 100)
+    map_id = parent
+  end
+
+  if map_id == target_id then return x, y end
+end
+
+local function pfQuestBuildContinentQuestNodes(continent_map)
+  local continent_nodes = {}
+
+  for addon, maps in pairs(pfMap.nodes or {}) do
+    if addon ~= CONTINENT_NODE_ADDON then
+      for map_id, map_nodes in pairs(maps or {}) do
+        map_id = tonumber(map_id)
+        if map_id and map_id > 0 and map_id ~= continent_map then
+          for coords, node in pairs(map_nodes) do
+            local _, _, sx, sy = string.find(coords, "(.*)|(.*)")
+            local x, y = tonumber(sx), tonumber(sy)
+
+            if x and y then
+              local tx, ty = pfQuestTranslateToMap(map_id, x, y, continent_map)
+              if tx and ty then
+                local filtered = nil
+                for title, meta in pairs(node) do
+                  if meta and meta.texture and (string.find(meta.texture, "available", 1, true) or string.find(meta.texture, "complete", 1, true)) then
+                    filtered = filtered or {}
+                    filtered[title] = meta
+                  end
+                end
+
+                if filtered then
+                  local key = string.format("%.2f|%.2f", tx, ty)
+                  continent_nodes[key] = continent_nodes[key] or {}
+                  for title, meta in pairs(filtered) do continent_nodes[key][title] = meta end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  return continent_nodes
+end
+
+function pfMap:GetMapID(cid, mid)
+  local continent = cid or GetCurrentMapContinent()
+  local zone = mid
+  if zone == nil then zone = GetCurrentMapZone() end
+
+  if zone == 0 then
+    local continent_map = pfQuestGetContinentMapID(continent)
+    if continent_map then return continent_map end
+  end
+
+  return original_GetMapID(self, cid, mid)
+end
+
+function pfMap:UpdateNodes()
+  if GetCurrentMapZone() == 0 then
+    local continent_map = pfQuestGetContinentMapID(GetCurrentMapContinent())
+    if continent_map then
+      pfMap.nodes[CONTINENT_NODE_ADDON] = pfMap.nodes[CONTINENT_NODE_ADDON] or {}
+      pfMap.nodes[CONTINENT_NODE_ADDON][continent_map] = pfQuestBuildContinentQuestNodes(continent_map)
+    end
+  end
+
+  return original_UpdateNodes(self)
 end
 
 local function pfQuestInstallWorldMapZoom()
