@@ -312,6 +312,19 @@ local function pfQuestTranslateToContinent(continent, map_id, x, y, zone_rects, 
   end
 end
 
+local function pfQuestShouldProjectContinentEntry(meta)
+  local quest_id = meta and tonumber(meta.questid)
+  if not quest_id or quest_id <= 0 then return nil end
+
+  local texture = meta.texture
+  if not texture then
+    -- Quest objectives are dot nodes (no texture) in pfQuest.
+    return true
+  end
+
+  return string.find(texture, "available", 1, true) or string.find(texture, "complete", 1, true)
+end
+
 local function pfQuestBuildContinentQuestNodes(continent)
   local continent_nodes = {}
 
@@ -334,8 +347,7 @@ local function pfQuestBuildContinentQuestNodes(continent)
               if tx and ty and tx >= 0 and tx <= 100 and ty >= 0 and ty <= 100 then
                 local filtered = nil
                 for title, meta in pairs(node) do
-                  local texture = meta and meta.texture
-                  if texture and (string.find(texture, "available", 1, true) or string.find(texture, "complete", 1, true)) then
+                  if pfQuestShouldProjectContinentEntry(meta) then
                     filtered = filtered or {}
                     filtered[title] = meta
                   end
