@@ -1,4 +1,13 @@
 # pfQuest (turtle)
+
+Fork of original pfQuest turtle allowing:
+
+- scroll on the world map (a bit bugged)
+- custom turtle quests colored green
+- quest dots and exclamation/question marks on world map
+
+---
+
 This AddOn is a [pfQuest](https://github.com/shagu/pfQuest) extension, which adds support for the [TurtleWoW](https://turtle-wow.org/) Private Server. In order to run this extension, the latest version of [pfQuest](https://github.com/shagu/pfQuest) is always required and only enUS-Gameclients are supported.
 
 *Notice: Issues and bugs like "please add quest XYZ" and all other content requests will be silently ignored. This is, because the data is not manually added, but depends on the Turtle-WoW team to release their database to a trusted person that can produce pfQuest-turtle builds.*
